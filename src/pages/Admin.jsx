@@ -3,7 +3,11 @@ import { useShop } from '../context/ShopContext';
 import { Trash2, Edit, Package, DollarSign, ShoppingBag, LogOut, Plus, X, Eye } from 'lucide-react';
 
 const Admin = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useShop();
+  const { 
+    products, addProduct, updateProduct, deleteProduct,
+    categories, addCategory, updateCategory, deleteCategory,
+    heroSlides, addSlide, updateSlide, deleteSlide
+  } = useShop();
   
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return sessionStorage.getItem('adminAuth') === 'true';
@@ -12,7 +16,13 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState({ id: null, name: '', price: '', image: '' });
+  const [currentProduct, setCurrentProduct] = useState({ id: null, categoryId: '', name: '', price: '', stock: '', description: '', image: '' });
+  
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState({ id: null, name: '', link: '#' });
+
+  const [isSlideModalOpen, setIsSlideModalOpen] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState({ id: null, title: '', subtitle: '', image: '' });
   
   const [activeTab, setActiveTab] = useState('products');
   const [orders, setOrders] = useState([]);
@@ -60,7 +70,7 @@ const Admin = () => {
 
   const openAddModal = () => {
     setIsEditing(false);
-    setCurrentProduct({ id: null, name: '', price: '', image: '' });
+    setCurrentProduct({ id: null, categoryId: categories[0]?.id || '', name: '', price: '', stock: '', description: '', image: '' });
     setIsModalOpen(true);
   };
 
@@ -70,14 +80,69 @@ const Admin = () => {
     setIsModalOpen(true);
   };
 
+  const handleEditCategory = (category) => {
+    setCurrentCategory(category);
+    setIsEditing(true);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleEditSlide = (slide) => {
+    setCurrentSlide(slide);
+    setIsEditing(true);
+    setIsSlideModalOpen(true);
+  };
+
+  const openAddCategoryModal = () => {
+    setIsEditing(false);
+    setCurrentCategory({ id: null, name: '', link: '#' });
+    setIsCategoryModalOpen(true);
+  };
+
+  const openAddSlideModal = () => {
+    setIsEditing(false);
+    setCurrentSlide({ id: null, title: '', subtitle: '', image: '' });
+    setIsSlideModalOpen(true);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const productToSave = { 
+      ...currentProduct, 
+      price: Number(currentProduct.price),
+      categoryId: Number(currentProduct.categoryId),
+      stock: Number(currentProduct.stock) || 0,
+      sold: currentProduct.sold || 0
+    };
+    
     if (isEditing) {
-      updateProduct(currentProduct.id, { ...currentProduct, price: Number(currentProduct.price) });
+      updateProduct(currentProduct.id, productToSave);
     } else {
-      addProduct({ ...currentProduct, price: Number(currentProduct.price) });
+      addProduct(productToSave);
     }
     setIsModalOpen(false);
+  };
+
+  const handleCategorySubmit = (e) => {
+    e.preventDefault();
+    if (isEditing) updateCategory(currentCategory.id, currentCategory);
+    else addCategory(currentCategory);
+    setIsCategoryModalOpen(false);
+  };
+
+  const handleSlideSubmit = (e) => {
+    e.preventDefault();
+    if (isEditing) updateSlide(currentSlide.id, currentSlide);
+    else addSlide(currentSlide);
+    setIsSlideModalOpen(false);
+  };
+
+  const handleSlideImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setCurrentSlide({ ...currentSlide, image: reader.result });
+      reader.readAsDataURL(file);
+    }
   };
 
   if (!isAuthenticated) {
@@ -122,6 +187,12 @@ const Admin = () => {
         <nav style={styles.sidebarNav}>
           <a href="#" style={activeTab === 'products' ? {...styles.navLink, ...styles.navLinkActive} : styles.navLink} onClick={(e) => { e.preventDefault(); setActiveTab('products'); }}>
             <Package size={20} /> Products
+          </a>
+          <a href="#" style={activeTab === 'categories' ? {...styles.navLink, ...styles.navLinkActive} : styles.navLink} onClick={(e) => { e.preventDefault(); setActiveTab('categories'); }}>
+            <Package size={20} /> Categories
+          </a>
+          <a href="#" style={activeTab === 'slides' ? {...styles.navLink, ...styles.navLinkActive} : styles.navLink} onClick={(e) => { e.preventDefault(); setActiveTab('slides'); }}>
+            <Eye size={20} /> Hero Slides
           </a>
           <a href="#" style={activeTab === 'orders' ? {...styles.navLink, ...styles.navLinkActive} : styles.navLink} onClick={(e) => { e.preventDefault(); setActiveTab('orders'); }}>
             <ShoppingBag size={20} /> Orders
@@ -183,13 +254,15 @@ const Admin = () => {
                     <th style={styles.th}>Image</th>
                     <th style={styles.th}>Product Name</th>
                     <th style={styles.th}>Price (BDT)</th>
+                    <th style={styles.th}>Stock</th>
+                    <th style={styles.th}>Sold</th>
                     <th style={styles.th} style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan="4" style={{ textAlign: 'center', padding: '32px', color: 'var(--gray)' }}>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: 'var(--gray)' }}>
                         No products found. Add some!
                       </td>
                     </tr>
@@ -201,13 +274,114 @@ const Admin = () => {
                         </td>
                         <td style={styles.td}>
                           <strong>{product.name}</strong>
+                          {product.description && <p style={{fontSize: '11px', color: 'var(--gray)', margin: '4px 0 0 0', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{product.description}</p>}
                         </td>
                         <td style={styles.td}>{product.price} BDT</td>
+                        <td style={styles.td}>
+                          <span style={{ padding: '4px 8px', borderRadius: '4px', backgroundColor: product.stock > 5 ? '#e8f5e9' : '#ffebee', color: product.stock > 5 ? '#2e7d32' : '#c62828', fontWeight: 'bold' }}>
+                            {product.stock}
+                          </span>
+                        </td>
+                        <td style={styles.td}>{product.sold || 0}</td>
                         <td style={styles.td} style={{ textAlign: 'right' }}>
                           <button onClick={() => handleEdit(product)} style={styles.actionBtn}>
                             <Edit size={18} />
                           </button>
                           <button onClick={() => deleteProduct(product.id)} style={{ ...styles.actionBtn, color: '#d32f2f' }}>
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'categories' && (
+          <>
+            <div style={styles.sectionHeader}>
+              <h2>Categories Management</h2>
+              <button className="btn btn-primary" onClick={openAddCategoryModal} style={{ display: 'flex', gap: '8px' }}>
+                <Plus size={18} /> Add Category
+              </button>
+            </div>
+
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Name</th>
+                    <th style={styles.th}>Link</th>
+                    <th style={styles.th} style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" style={{ textAlign: 'center', padding: '32px', color: 'var(--gray)' }}>No categories found.</td>
+                    </tr>
+                  ) : (
+                    categories.map(category => (
+                      <tr key={category.id} style={styles.tr}>
+                        <td style={styles.td}><strong>{category.name}</strong></td>
+                        <td style={styles.td}>{category.link}</td>
+                        <td style={styles.td} style={{ textAlign: 'right' }}>
+                          <button onClick={() => handleEditCategory(category)} style={styles.actionBtn}>
+                            <Edit size={18} />
+                          </button>
+                          <button onClick={() => deleteCategory(category.id)} style={{ ...styles.actionBtn, color: '#d32f2f' }}>
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'slides' && (
+          <>
+            <div style={styles.sectionHeader}>
+              <h2>Hero Slides Management</h2>
+              <button className="btn btn-primary" onClick={openAddSlideModal} style={{ display: 'flex', gap: '8px' }}>
+                <Plus size={18} /> Add Slide
+              </button>
+            </div>
+
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Image</th>
+                    <th style={styles.th}>Title</th>
+                    <th style={styles.th}>Subtitle</th>
+                    <th style={styles.th} style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {heroSlides.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: '32px', color: 'var(--gray)' }}>No slides found.</td>
+                    </tr>
+                  ) : (
+                    heroSlides.map(slide => (
+                      <tr key={slide.id} style={styles.tr}>
+                        <td style={styles.td}>
+                          <img src={slide.image} alt="Slide" style={styles.productThumbnail} />
+                        </td>
+                        <td style={styles.td}><strong>{slide.title}</strong></td>
+                        <td style={styles.td}>{slide.subtitle}</td>
+                        <td style={styles.td} style={{ textAlign: 'right' }}>
+                          <button onClick={() => handleEditSlide(slide)} style={styles.actionBtn}>
+                            <Edit size={18} />
+                          </button>
+                          <button onClick={() => deleteSlide(slide.id)} style={{ ...styles.actionBtn, color: '#d32f2f' }}>
                             <Trash2 size={18} />
                           </button>
                         </td>
@@ -279,10 +453,37 @@ const Admin = () => {
                 <label style={styles.label}>Product Name</label>
                 <input type="text" name="name" required value={currentProduct.name} onChange={handleChange} style={styles.input} className="checkout-input" />
               </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Category</label>
+                <select 
+                  name="categoryId" 
+                  value={currentProduct.categoryId} 
+                  onChange={handleChange} 
+                  style={styles.input} 
+                  className="checkout-input"
+                  required
+                >
+                  <option value="" disabled>Select Category</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
               
               <div style={styles.formGroup}>
                 <label style={styles.label}>Price (BDT)</label>
                 <input type="number" name="price" required value={currentProduct.price} onChange={handleChange} style={styles.input} className="checkout-input" />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Stock (Pcs)</label>
+                <input type="number" name="stock" required value={currentProduct.stock} onChange={handleChange} style={styles.input} className="checkout-input" />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Description (Optional)</label>
+                <textarea name="description" value={currentProduct.description || ''} onChange={handleChange} style={{...styles.input, resize: 'vertical', minHeight: '80px'}} className="checkout-input" placeholder="Useful for 'How to Wear It' section..."></textarea>
               </div>
               
               <div style={styles.formGroup}>
@@ -312,6 +513,76 @@ const Admin = () => {
           </div>
         </div>
       )}
+
+      {/* Category Modal */}
+      {isCategoryModalOpen && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <div style={styles.modalHeader}>
+              <h3>{isEditing ? 'Edit Category' : 'Add New Category'}</h3>
+              <button onClick={() => setIsCategoryModalOpen(false)} style={styles.closeBtn}><X size={24} /></button>
+            </div>
+            
+            <form onSubmit={handleCategorySubmit} style={styles.modalForm}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Category Name</label>
+                <input type="text" value={currentCategory.name} onChange={(e) => setCurrentCategory({...currentCategory, name: e.target.value})} style={styles.input} className="checkout-input" required />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Link</label>
+                <input type="text" value={currentCategory.link} onChange={(e) => setCurrentCategory({...currentCategory, link: e.target.value})} style={styles.input} className="checkout-input" required />
+              </div>
+              <div style={styles.modalFooter}>
+                <button type="button" className="btn btn-outline" onClick={() => setIsCategoryModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Slide Modal */}
+      {isSlideModalOpen && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <div style={styles.modalHeader}>
+              <h3>{isEditing ? 'Edit Slide' : 'Add New Slide'}</h3>
+              <button onClick={() => setIsSlideModalOpen(false)} style={styles.closeBtn}><X size={24} /></button>
+            </div>
+            
+            <form onSubmit={handleSlideSubmit} style={styles.modalForm}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Title</label>
+                <input type="text" value={currentSlide.title} onChange={(e) => setCurrentSlide({...currentSlide, title: e.target.value})} style={styles.input} className="checkout-input" />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Subtitle</label>
+                <input type="text" value={currentSlide.subtitle} onChange={(e) => setCurrentSlide({...currentSlide, subtitle: e.target.value})} style={styles.input} className="checkout-input" />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Slide Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleSlideImageUpload} 
+                  style={{...styles.input, padding: '10px'}} 
+                  className="checkout-input" 
+                  required={!currentSlide.image}
+                />
+                {currentSlide.image && (
+                  <div style={styles.imagePreview}>
+                    <img src={currentSlide.image} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
+              </div>
+              <div style={styles.modalFooter}>
+                <button type="button" className="btn btn-outline" onClick={() => setIsSlideModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -323,7 +594,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'var(--gray-light)',
-    marginTop: '-80px', // offset navbar
+    marginTop: '-120px', // offset navbar
   },
   loginBox: {
     backgroundColor: 'var(--white)',
@@ -345,8 +616,8 @@ const styles = {
     display: 'flex',
     minHeight: '100vh',
     backgroundColor: 'var(--gray-light)',
-    marginTop: '-80px', // override global nav
-    paddingTop: '80px', // space for global nav
+    marginTop: '-120px', // override global nav
+    paddingTop: '120px', // space for global nav
   },
   sidebar: {
     width: '260px',
@@ -355,7 +626,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     position: 'fixed',
-    height: 'calc(100vh - 80px)',
+    height: 'calc(100vh - 120px)',
   },
   sidebarBrand: {
     padding: '32px 24px',

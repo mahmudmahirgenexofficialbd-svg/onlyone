@@ -7,6 +7,7 @@ import Landing from './pages/Landing';
 import Checkout from './pages/Checkout';
 import Invoice from './pages/Invoice';
 import Admin from './pages/Admin';
+import CategoryPage from './pages/CategoryPage';
 
 function App() {
   return (
@@ -14,9 +15,10 @@ function App() {
       <Navbar />
       <CartDrawer />
       
-      <main style={{ flex: 1, marginTop: '80px' }}>
+      <main style={{ flex: 1, marginTop: '120px' }}>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/category/:categoryId" element={<CategoryPage />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/invoice" element={<Invoice />} />
           <Route path="/admin" element={<Admin />} />

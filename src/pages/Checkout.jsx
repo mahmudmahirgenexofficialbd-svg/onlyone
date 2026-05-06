@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 
 const Checkout = () => {
-  const { cart, cartTotal, clearCart } = useShop();
+  const { cart, cartTotal, clearCart, processOrder } = useShop();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -50,6 +50,7 @@ const Checkout = () => {
         total
       };
       
+      processOrder([...cart]); // Deduct stock & increment sold
       const existingOrders = JSON.parse(localStorage.getItem('onlyone_orders') || '[]');
       existingOrders.push(order);
       localStorage.setItem('onlyone_orders', JSON.stringify(existingOrders));

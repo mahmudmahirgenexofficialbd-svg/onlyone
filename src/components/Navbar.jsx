@@ -4,11 +4,11 @@ import { ShoppingBag, User } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 const Navbar = () => {
-  const { cartCount, setIsCartOpen } = useShop();
+  const { cartCount, setIsCartOpen, categories } = useShop();
 
   return (
     <header style={styles.header}>
-      <div className="container" style={styles.container}>
+      <div className="container" style={styles.topRow}>
         <div style={styles.logo}>
           <Link to="/">ONLYONE</Link>
         </div>
@@ -23,6 +23,16 @@ const Navbar = () => {
           </Link>
         </nav>
       </div>
+
+      <div style={styles.bottomRow}>
+        <div className="container" style={styles.categoriesContainer}>
+          {categories.map(category => (
+            <Link key={category.id} to={category.link} style={styles.categoryLink}>
+              {category.name}
+            </Link>
+          ))}
+        </div>
+      </div>
     </header>
   );
 };
@@ -33,18 +43,40 @@ const styles = {
     top: 0,
     left: 0,
     width: '100%',
-    height: '80px',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    height: '120px',
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
     backdropFilter: 'blur(10px)',
     borderBottom: '1px solid var(--gray-light)',
     zIndex: 100,
     display: 'flex',
-    alignItems: 'center',
+    flexDirection: 'column',
   },
-  container: {
+  topRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    height: '80px',
+  },
+  bottomRow: {
+    height: '40px',
+    borderTop: '1px solid var(--gray-light)',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  categoriesContainer: {
+    display: 'flex',
+    gap: '24px',
+    overflowX: 'auto',
+    scrollbarWidth: 'none', // Firefox
+    msOverflowStyle: 'none', // IE/Edge
+  },
+  categoryLink: {
+    fontSize: '13px',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    color: 'var(--black)',
+    whiteSpace: 'nowrap',
   },
   logo: {
     fontFamily: 'var(--font-display)',
